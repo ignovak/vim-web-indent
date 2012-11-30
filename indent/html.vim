@@ -108,7 +108,6 @@ call <SID>HtmlIndentPush('var')
 if !exists('g:html_indent_strict')
     call <SID>HtmlIndentPush('body')
     call <SID>HtmlIndentPush('head')
-    call <SID>HtmlIndentPush('html')
     call <SID>HtmlIndentPush('tbody')
 endif
 

@@ -13,11 +13,6 @@ endif
 
 let b:did_indent = 1
 
-" Set the global log variable 1 = logging enabled, 0 = logging disabled
-if !exists("g:js_indent_log")
-	let g:js_indent_log = 0
-endif
-
 setlocal indentexpr=GetJsIndent(v:lnum)
 setlocal indentkeys=
 
@@ -221,16 +216,6 @@ function! s:IsControlEnd(line)
 	return a:line =~ s:cntrl_end
 endfunction
 
-" = Method: Log
-"
-" Logs a message to the stdout.
-function! s:Log(msg)
-	if g:js_indent_log
-		echo "LOG: " . a:msg
-	endif
-endfunction
-
-
 " 3. Indenter
 " ===========
 function! GetJsIndent(lnum)
@@ -239,16 +224,11 @@ function! GetJsIndent(lnum)
 
 	" First line, start at indent = 0
 	if pnum == 0
-		call s:Log("No, noncomment lines prior to the current line.")
 		return 0
 	endif
 
 	" Grab the second non-comment line prior to this line
 	let ppnum = s:GetNonCommentLine(pnum-1)
-
-	call s:Log("Line: " . a:lnum)
-	call s:Log("PLine: " . pnum)
-	call s:Log("PPLine: " . ppnum)
 
 	" Determine the current level of indentation
 	let ind = indent(pnum)
@@ -271,21 +251,15 @@ function! GetJsIndent(lnum)
 	let line = getline(a:lnum)
 	let ppline = getline(ppnum)
 
-
 	" Handle: Object Closers (ie }) 
 	" =============================
 	if s:IsObjectEnd(line) && !s:IsComment(a:lnum)
-		call s:Log("Line matched object end")
-
 		let obeg = s:GetObjectBeg(a:lnum)
 		let oind = indent(obeg)
-
-		call s:Log("The object beg was found at: " . obeg)
 		return oind
 	endif
 
 	if s:IsObjectBeg(pline) 
-		call s:Log("Pline matched object beg")
 		return ind + &sw 
 	endif
 
@@ -293,34 +267,24 @@ function! GetJsIndent(lnum)
 	" Handle: Array Closer (ie ])
 	" ============================
 	if s:IsArrayEnd(line) && !s:IsComment(a:lnum)
-		call s:Log("Line matched array end")
-
 		let abeg = s:GetArrayBeg(a:lnum)
 		let aind = indent(abeg)
-
-		call s:Log("The array beg was found at: " . abeg)
 		return aind
 	endif
 
 	if s:IsArrayBeg(pline) 
-		call s:Log("Pline matched array beg")
 		return ind + &sw 
 	endif
 
 	" Handle: Parens
 	" ==============
 	if s:IsParenEnd(line) && !s:IsComment(a:lnum)
-		call s:Log("Line matched paren end")
-
 		let abeg = s:GetParenBeg(a:lnum)
 		let aind = indent(abeg)
-
-		call s:Log("The paren beg was found at: " . abeg)
 		return aind
 	endif
 
 	if s:IsParenBeg(pline) 
-		call s:Log("Pline matched paren beg")
 		return ind + &sw 
 	endif
 
@@ -328,35 +292,26 @@ function! GetJsIndent(lnum)
 	" Handle: Continuation Lines. 
 	" ========================================================
 	if s:IsContinuationLine(pline) 
-		call s:Log('Pline is a continuation line.')
-
 		let cbeg = s:GetContinuationBegin(pnum)
 		let cind = indent(cbeg)
-
-		call s:Log('The continuation block begin found at: ' . cbeg)
 		return cind + &sw
 	endif
 
 	if s:IsContinuationLine(ppline)
-		call s:Log('PPline was a continuation line but pline wasnt.')
 		return ind - &sw
 	endif
 
 	" Handle: Switch Control Blocks
 	" =============================
 	if s:IsSwitchMid(pline) 
-		call s:Log("PLine matched switch cntrl mid")
 		if s:IsSwitchMid(line) || s:IsObjectEnd(line)
-			call s:Log("Line matched a cntrl mid")
 			return ind
 		else
-			call s:Log("Line didnt match a cntrl mid")
 			return ind + &sw
 		endif 
 	endif
 
 	if s:IsSwitchMid(line)
-		call s:Log("Line matched switch cntrl mid")
 		return ind - &sw
 	endif
 
@@ -364,13 +319,9 @@ function! GetJsIndent(lnum)
 	" Handle: Single Line Control Blocks
 	" ==================================
 	if s:IsControlBeg(pline)
-		call s:Log("Pline matched control beginning")
-		
 		if s:IsControlMid(line)
-			call s:Log("Line matched a control mid")
 			return ind
 		elseif line =~ '^\s*{\s*$'
-			call s:Log("Line matched an object beg")
 			return ind
 		else
 			return ind + &sw
@@ -379,41 +330,29 @@ function! GetJsIndent(lnum)
 	endif
 
 	if s:IsControlMid(pline)
-		call s:Log("Pline matched a control mid")
-
 		if s:IsControlMid(line)
-			call s:Log("Line matched a control mid")
 			return ind
 		elseif s:IsObjectBeg(line)
-			call s:Log("Line matched an object beg")
 			return ind
 		else
-			call s:Log("Line didn't match a control mid or object beg."
 			return ind + &sw
 		endif
 	endif
 
 	if s:IsControlMid(line)
-		call s:Log("Line matched a control mid.")
-
 		if s:IsControlEnd(pline) || s:IsObjectEnd(pline)
-			call s:Log("PLine matched control end")
 			return ind
 		else
-			call s:Log("Pline didn't match object end")
 			return ind - &sw
 		endif
 	endif
 
-
 	if ( s:IsControlBeg(ppline) || s:IsControlMid(ppline) ) &&
 			\ !s:IsObjectBeg(pline) && !s:IsObjectEnd(pline)
-		call s:Log("PPLine matched single line control beg or mid")
 		return ind - &sw
 	endif
 
 	" Handle: No matches
 	" ==================
-	"call s:Log("Line didn't match anything.  Retaining indent")
 	return ind
 endfunction

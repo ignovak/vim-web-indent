@@ -35,7 +35,7 @@ let s:js_end_line_comment = s:js_mid_line_comment . '\s*\(//.*\)*'
 let s:js_line_comment = s:js_end_line_comment
 
 " Comment/String Syntax Key
-let s:syn_comment = '\(Comment\|String\|Regexp\)'
+let s:syn_comment = '\(LineComment\|String\|Regexp\)'
 
 
 " 2. Aux. Functions
@@ -250,13 +250,26 @@ function! GetJsIndent(lnum)
 	call s:Log("PLine: " . pnum)
 	call s:Log("PPLine: " . ppnum)
 
-	" Grab the lines themselves.
-	let line = getline(a:lnum)
-	let pline = getline(pnum)
-	let ppline = getline(ppnum)
-
 	" Determine the current level of indentation
 	let ind = indent(pnum)
+
+	" Grab the lines themselves.
+	let pline = getline(pnum)
+
+	" Fix the conflict with NeoSnippet plugin
+	" Without it indentation for snippet
+	" ```
+	"   /**
+	"    *
+	"    */
+	" ```
+	" is broken
+	if pline =~ '\/\*\*'
+		return ind + 1
+	endif
+
+	let line = getline(a:lnum)
+	let ppline = getline(ppnum)
 
 
 	" Handle: Object Closers (ie }) 
@@ -266,7 +279,6 @@ function! GetJsIndent(lnum)
 
 		let obeg = s:GetObjectBeg(a:lnum)
 		let oind = indent(obeg)
-		let oline = getline(obeg)
 
 		call s:Log("The object beg was found at: " . obeg)
 		return oind
